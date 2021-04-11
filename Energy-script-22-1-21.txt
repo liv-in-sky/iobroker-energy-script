@@ -1,0 +1,1694 @@
+//@liv-in-sky Januar 2021 Ver. 22.01.-10:00
+const dpPrefix = "javascript."+ instance +".";
+//HIER WIRD PFAD UND FILENAME DEFINIERT
+const path = "/htmlenergy.html";                   //FIlenamen definieren
+const home ='vis.0'                                 //wo soll das file im iobroker-file-system liegen ? (oder z.b auch iqontrol.meta)
+let   braucheEinFile=false;                          // bei true wird ein file geschrieben
+let   braucheEinVISWidget=true;                     // bei true wird ein html-tabelle in einen dp geschrieben - siehe nächste zeile
+let   braucheMaterialDesignWidget=false;             // bei true wird ein html-tabelle in einen dp geschrieben - MUSS ANGELEGT WERDEN !!!
+let   braucheMaterialDesignWidgetTable=false;        // bei true wird ein html-tabelle in einen dp geschrieben - MUSS ANGELEGT WERDEN !!!
+let dpVIS="controll-own.0.TABELLEN.ENERGY";         //WICHTIG wenn braucheEinVISWidget auf true gesetzt !!  dp zusätzlich für VIS-HTML-Basic-Widget
+let dpAnzahl="controll-own.0.TABELLEN.AnzahlEnergiemesser";  //WICHTIG datenpunkt erstellen vom typ "number" - bei 0 kein alarm und größer 0 die anzahl der schlechten batterien
+let dpMaterialWidget="controll-own.0.TABELLEN.EnergyMaterialWidget";            // MATERIALDESIGN List Widget - datenpunkt: zeichenkette  
+let dpMaterialWidgetTable="controll-own.0.TABELLEN.EnergyMaterialWidgetTable";  // MATERIALDESIGN Table Widget - datenpunkt: zeichenkette 
+let pfadBilderMaterialWidget="/vis.0/armin/img/marken/"  ;                     // PFAD zu den bildern, die in die vis geladen wurden
+let htmlColorDeviceUeberschrift="#01DFD7" ;            //  Farbe der Geräte Marken  A0C2A0
+let HTMLbrandSetting="b";                              // style der geräte marken:  möglich b fett; i kursiv; span normal
+let mitMonatBeforeAnzeige=true;
+let farbeFehlenderGeräte="#0489B1";                    //warnfarbe für momentan fehlende geräte F6CED8
+const farbeSchalterON="Aqua";               // farbe des schalters für ON
+const farbeSchalterOFF="LightSeaGreen";               // farbe des schalters für OFF
+const farbeMDGesamtG="Aqua";                 // farbe für Material Desogn : "alle Geräte" 
+const farbeMDAlleVirtPow="DodgerBlue"//"LightSeaGreen"          // farbe für Material Desogn : "alle virtPoeer geräte" 
+const farbeMDEinspeisung="Chocolate";                 // farbe für Material Desogn : "Einspeisung" 
+//---------------------------------------
+//let mySchedule="  */10 * * * * * "; 
+ 
+let kwhPreis=0.34;
+ 
+// GERÄTE FREISCHALTUNG und SourceAnalytics
+ 
+var pow=true;              var sourceAnalyPow=true;            // für Tasmota Geräte
+var tuya=false;             var sourceAnalyTuya=true;
+var hs100=false;            var sourceAnalyHS=true;                                                                                       //tplink
+var homematic=false;        var sourceAnalyHM=true;
+var blitzwolf=false;        var sourceAnalyBlitz=true;
+var teckin=false;           var sourceAnalyTeck=true;
+var mihome=false;           var sourceAnalyMihome=true;                                                            //smart-plug
+var homee=false;            var sourceAnalyHomee=true;
+var gosundSP1x=true;       var sourceAnalyGo=true;
+var shelly=false;            var sourceAnalyShelly=true;
+var zigbee=false;           var sourceAnalyZigbee=true;
+var fritzdect=false;         var sourceAnalyFritz=true;
+var meross=false;             var sourceAnalyMeross=true;
+var virtualPower=false;              //zeigt alle Virt. Power - geräte an               
+var virtualPowerGesamt=false;        // zeigt geamt von virt Power-geräte an
+ 
+var gesamt=true;                                            // Spalte Gesamt am ende der tabelle
+ 
+var symbolOK="🔹";     // auch möglich: ="✅"  
+var symbolKO="❌";     //z.b. auch "<font color=\"red\"><b>X</b>" für ein rotes kreuz  oder : ="❌"  ⚪  ⚫ ⭕  🔴 🔵 ⏱ 💀 👍 👎 📑 💲 👀 🔹
+var symbolWARN="⚠️";    // ="⚠️"
+var externalOhneInfo=false;  //noch nicht integriert
+ 
+var filterArrAusnahme=["Device SHEM-3#DC4F227646FB#1","Device SHEM-3#DC4F227646FB#1(2)","Device SHEM-3#DC4F227646FB#1(3)"];                    // für Einspeisung - benötigt common.name des devices (wie in der tabellen anzeige)
+                                                       // beispiel: var filterArrAusnahme=["Pow Room TV","MyEinspeisungTest"]; Einspeisung über virtPower geht nicht !!!!
+var scaleWebseite="1";                       // webseitengröße ändern (kein einfluss auf VIS widget) - verkleinern z.b.25% : var scaleWebseite=".75"; 
+ 
+ 
+//HIER DIE SPALTEN ANZAHL DEFINIEREN - jede Spalte einen Wert - in diesem Beispiel sind es 5
+var htmlFeld1='Device';       var Feld1lAlign="left";                     // überschrift Tabellen Spalte1 und  Ausrichtung left,right or center
+var htmlFeld2='Status';        var Feld2lAlign="center";                      // überschrift Tabellen Spalte2 und  Ausrichtung left,right or center
+var htmlFeld3='Amp';         var Feld3lAlign="center";                    // überschrift Tabellen Spalte3 und  Ausrichtung left,right or center
+var htmlFeld4='Volt';        var Feld4lAlign="center";                    // überschrift Tabellen Spalte4 und  Ausrichtung left,right or center
+var htmlFeld5='Power';        var Feld5lAlign="center";                    // überschrift Tabellen Spalte5 und  Ausrichtung left,right or center
+var htmlFeld6='Schalter';        var Feld6lAlign="center";                    // überschrift Tabellen Spalte5 und  Ausrichtung left,right or center
+var htmlFeld7='';        var Feld7lAlign="center";                    // überschrift Tabellen Spalte5 und  Ausrichtung left,right or center
+var htmlFeld8='';        var Feld8lAlign="center";                    // überschrift Tabellen Spalte5 und  Ausrichtung left,right or center
+var htmlFeld9='';        var Feld9lAlign="center";                    // überschrift Tabellen Spalte5 und  Ausrichtung left,right or center
+var htmlFeld10='';        var Feld10lAlign="center";                    // überschrift Tabellen Spalte5 und  Ausrichtung left,right or center
+ 
+//-----------------------------------
+ 
+ 
+//ÜBERSCHRIFT ÜBER TABELLE
+let   htmlUberschrift=true;                           // mit Überschrift über der tabelle
+let   htmlSignature=false;                              // anstatt der Überscghrift eine signature: - kleiner - anliegend
+const htmlFeldUeber='Energy Devices';              // Überschrift und Signature
+const htmlFarbUber="white";                         // Farbe der Überschrift
+const htmlSchriftWeite="normal";                       // bold, normal - Fettschrift für Überschrift
+const htmlÜberFontGroesse="18px";                       // schriftgröße überschrift
+//MEHRERE TABELLEN NEBENEINANDER
+let   mehrfachTabelle=1;                              // bis zu 4 Tabellen werden nebeneinander geschrieben-  verkürzt das Ganze, dafür etwas breiter - MÖGLICH 1,2,3,oder 4 !!!
+const htmlFarbZweiteTabelle="white";                // Farbe der Überschrift bei jeder 2.ten Tabelle
+const htmlFarbTableColorUber="white";               // Überschrift in der tabelle - der einzelnen Spalten BDBDBD
+//ÜBERSCHRIFT SPALTEN
+const UeberSchriftHöhe="35";                          //Überschrift bekommt mehr Raum - darunter und darüber - Zellenhöhe
+const LinieUnterUeberschrift="2";                   // Linie nur unter Spaltenüberschrift - 
+const farbeLinieUnterUeberschrift="white";
+const groesseUeberschrift=16;
+const UeberschriftStyle="normal"                     // möglich "bold"
+//GANZE TABELLE
+let abstandZelle="1";
+let farbeUngeradeZeilen="#1C1C1C"//"#1C1C1C";                     //Farbe für ungerade Zeilenanzahl - Hintergrund der Spaltenüberschrift bleibt bei htmlFarbTableColorGradient1/2
+let farbeGeradeZeilen="black"//"black";                        //Farbe für gerade Zeilenanzahl - Hintergrund der Spaltenüberschrift bleibt bei htmlFarbTableColorGradient1/2
+let weite="auto";                                     //Weite der Tabelle
+let zentriert=true;                                   //ganze tabelle zentriert
+const backgroundAll="#000000";                        //Hintergrund für die ganze Seite - für direkten aufruf oder iqontrol sichtber - keine auswirkung auf vis-widget
+const htmlSchriftart="Ubuntu-Regular"     //"Jura-DemiBold"   //"RobotoCondensed-Bold"   //"Helvetica";
+const htmlSchriftgroesse="14px";
+//FELDER UND RAHMEN
+let   UeberschriftSpalten=true;                // ein- oder ausblenden der spatlen-überschriften
+const htmlFarbFelderschrift="#BDBDBD";                  // SchriftFarbe der Felder
+const htmlFarbFelderschrift2="#D8D8D8";                 // SchriftFarbe der Felder für jede 2te Tabelle
+const htmlFarbTableColorGradient1="black";          //  Gradient - Hintergrund der Tabelle - Verlauffarbe
+const htmlFarbTableColorGradient2="black";          //  Gradient - Hintergrund der Tabelle - ist dieser Wert gleich Gradient1 gibt es keinen verlauf
+const htmlFarbTableBorderColor="grey";             // Farbe des Rahmen - is tdieser gleich den gradienten, sind die rahmen unsichtbar
+let htmlRahmenLinien="cols";                            // Format für Rahmen: MÖGLICH: "none" oder "all" oder "cols" oder "rows"
+const htmlSpalte1Weite="auto";                   //  Weite der ersten beiden  Spalten oder z.b. 115px
+ 
+// HIER NICHTS  ÄNDERN
+ 
+let borderHelpBottum;
+let borderHelpRight;
+let htmlcenterHelp;
+let htmlcenterHelp2;
+ 
+if(htmlRahmenLinien=="rows") {borderHelpBottum=1;borderHelpRight=0;}
+if(htmlRahmenLinien=="cols") {borderHelpBottum=0;borderHelpRight=1;}
+if(htmlRahmenLinien=="none") {borderHelpBottum=0;borderHelpRight=0;}
+if(htmlRahmenLinien=="all")  {borderHelpBottum=1;borderHelpRight=1;}
+zentriert ? htmlcenterHelp="auto" : htmlcenterHelp="left";
+zentriert ? htmlcenterHelp2="center" : htmlcenterHelp2="left";
+ 
+ 
+const htmlZentriert='<center>'
+const htmlStart=    "<!DOCTYPE html><html lang=\"de\"><head><title>Vorlage</title><meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\">"+
+                   "<style> * {  margin: 0;} body {background-color: "+backgroundAll+"; margin: 0 auto;  }"+
+                   " p {padding-top: 10px; padding-bottom: 10px; text-align: "+htmlcenterHelp2+"}"+
+                   " html {transform: scale("+scaleWebseite+");}"+
+                  // " div { margin: 0 auto;  margin-left: auto; margin-right: auto;}"+
+                   " td { padding:"+abstandZelle+"px; border:0px solid "+htmlFarbTableBorderColor+";  border-right:"+borderHelpRight+"px solid "+htmlFarbTableBorderColor+";border-bottom:"+borderHelpBottum+"px solid "+htmlFarbTableBorderColor+";}"+ 
+                   " table { width: "+weite+";  margin: 0 "+htmlcenterHelp+"; border:1px solid "+htmlFarbTableBorderColor+"; border-spacing=\""+abstandZelle+"0px\" ; }"+   // margin macht center
+                   "td:nth-child(1) {width: "+htmlSpalte1Weite+"}"+"td:nth-child(2) {width:"+htmlSpalte1Weite+"}"+
+                   " </style></head><body> <div>";
+//const htmlUeber=    "<p style=\"color:"+htmlFarbUber+"; font-family:"+htmlSchriftart+"; font-weight: bold\">"+htmlFeldUeber+"</p>";                    
+const htmlTabStyle= "<table bordercolor=\""+htmlFarbTableBorderColor+"\" border=\"2px\" cellspacing=\""+abstandZelle+"\" cellpadding=\""+abstandZelle+"\" width=\""+weite+"\" rules=\""+htmlRahmenLinien+"\" style=\"color:"+htmlFarbFelderschrift+";  font-size:"+htmlSchriftgroesse+
+                      "; font-family:"+htmlSchriftart+";background-image: linear-gradient(42deg,"+htmlFarbTableColorGradient2+","+htmlFarbTableColorGradient1+");\">";
+const htmlTabUeber1="<tr height=\""+UeberSchriftHöhe+"\" style=\"color:"+htmlFarbTableColorUber+"; font-size: "+groesseUeberschrift+"px; font-weight: "+UeberschriftStyle+" ;  border-bottom: "+LinieUnterUeberschrift+"px solid "+farbeLinieUnterUeberschrift+" \">";
+const htmlTabUeber3="</tr>";
+ 
+ 
+//NICHTS ÄNDERN - abhängig von den oben definierten _Spalten - in diesem Beispiel sind es 5
+ 
+ 
+var htmlTabUeber2="<td width="+htmlSpalte1Weite+" align="+Feld1lAlign+">&ensp;"+htmlFeld1+"&ensp;</td><td width="+htmlSpalte1Weite+" align="+Feld2lAlign+">&ensp;"+htmlFeld2+"&ensp;</td><td  align="+Feld3lAlign+">&ensp;"+htmlFeld3+"&ensp;</td><td align="+Feld4lAlign+
+                  ">&ensp;"+htmlFeld4+"&ensp;</td><td  align="+Feld5lAlign+">&ensp;"+htmlFeld5+"&ensp;</td><td  align="+Feld6lAlign+">&ensp;"+htmlFeld6+"&ensp;</td><td  align="+Feld7lAlign+">&ensp;"+htmlFeld7+"&ensp;</td><td  align="+Feld8lAlign+">&ensp;"+htmlFeld8+
+                  "&ensp;</td><td  align="+Feld9lAlign+">&ensp;"+htmlFeld9+"&ensp;</td><td  align="+Feld10lAlign+">&ensp;"+htmlFeld10+"&ensp;</td>";
+var htmlTabUeber2_1="<td width="+htmlSpalte1Weite+" align="+Feld1lAlign+" style=\"color:"+htmlFarbZweiteTabelle+"\">&ensp;"+htmlFeld1+"&ensp;</td><td width="+htmlSpalte1Weite+" align="+Feld2lAlign+" style=\"color:"+htmlFarbZweiteTabelle+"\">&ensp;"+htmlFeld3+
+                   "&ensp;</td><td  align="+Feld3lAlign+" style=\"color:"+htmlFarbZweiteTabelle+"\">&ensp;"+htmlFeld3+"&ensp;</td><td  align="+Feld4lAlign+" style=\"color:"+htmlFarbZweiteTabelle+"\">&ensp;"+htmlFeld4+
+                   "&ensp;</td><td align="+Feld5lAlign+" style=\"color:"+htmlFarbZweiteTabelle+"\"&ensp;>"+htmlFeld5+"&ensp;</td><td align="+Feld6lAlign+" style=\"color:"+htmlFarbZweiteTabelle+"\"&ensp;>"+htmlFeld6+"&ensp;</td><td align="+Feld7lAlign+
+                   " style=\"color:"+htmlFarbZweiteTabelle+"\"&ensp;>"+htmlFeld7+"&ensp;</td><td align="+Feld8lAlign+" style=\"color:"+htmlFarbZweiteTabelle+"\"&ensp;>"+htmlFeld8+"&ensp;</td><td  align="+Feld9lAlign+">&ensp;"+htmlFeld9+"&ensp;</td><td  align="+Feld10lAlign+">&ensp;"+htmlFeld10+"&ensp;</td>";
+                       //------------------------------------------------------
+ 
+let triggerBySonoffSwitch=false;
+var anzahl;
+var AkkuAlarm=[];
+var htmlOut="";
+var mix;
+var counter;
+var arrTrigger=[];
+var rootCounter=false;
+var val1; var val2; var val0; var val3; var val4; var val5; var val6; var val7; var val8; var val9;; var valStatus;
+var json1; var json2; var json3; var json4; var json5; var json6; var json7;var json8; var json9; var json10;
+var htmlTabUeber="";
+var tagErinnern=false;
+var monatErinnern=false;
+var anzahlStellen=3;
+var gesamtNow=0;
+var gesamtMonth=0;
+var gesamtMoneyTod=0;
+var gesamtMoneyMon=0;
+var gesamtMonthBefore=0;
+var gesamtMonthMoneyBefore=0;
+var filterArrAusnahmeHelp=[];
+var lastID=""; let shellyNumber=1;//wegen shelly 2-port
+var myJsonWidget=[]; 
+var myJsonWidget2=[];
+var valMarkeDevice="";
+var valSwitchDevice;
+ 
+mehrfachTabelle=1; 
+ 
+var fehlerMin=0;
+ 
+function writeHTML(){
+gesamtNow=0;
+gesamtMonth=0;
+gesamtMoneyTod=0;
+gesamtMoneyMon=0;
+gesamtMonthBefore=0;
+gesamtMonthMoneyBefore=0;
+var nameDevice="";
+filterArrAusnahmeHelp=[];  
+ 
+ 
+anzahl=0;
+htmlOut="";
+counter=-1;
+htmlTabUeber="";
+switch (mehrfachTabelle) { 
+   case 1: htmlTabUeber=htmlTabUeber1+htmlTabUeber2+htmlTabUeber3;  break;
+   case 2: htmlTabUeber=htmlTabUeber1+htmlTabUeber2+htmlTabUeber2_1+htmlTabUeber3; break;
+   case 3: htmlTabUeber=htmlTabUeber1+htmlTabUeber2+htmlTabUeber2+htmlTabUeber2+htmlTabUeber3; break;
+   case 4: htmlTabUeber=htmlTabUeber1+htmlTabUeber2+htmlTabUeber2_1+htmlTabUeber2+htmlTabUeber2_1+htmlTabUeber3; break;
+}; 
+if (!UeberschriftSpalten) {htmlTabUeber=""}  
+ 
+//--------------------------------------------------------------------------------------------------------------------------------------------------
+//---------hier kommt eure schleife rein counter++, tabelleBind() und tabelleFinish() müssen so integriert bleiben !!!------------------------------
+//---------alle valx werte müssen von euch bestimmt werden - val0,val1,val2,val3,val4!!!------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------------------------------------
+ 
+ 
+ 
+if (virtualPower){
+counter=0
+      
+      counter++//=0;
+      val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind();  
+     
+      counter++//=0;
+      val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">VirtualPower</"+HTMLbrandSetting+">"; val1=""; val2="";val3="";val4="";
+      val5="<font color=\""+htmlColorDeviceUeberschrift+"\">";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+">";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+">";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+">";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+">";
+      tabelleBind();  
+   
+ 
+ 
+    var arrVirtDev=(getState("virtualpowermeter.0.group_script.info").val).replace(/;$/,"").split(';');
+ 
+   for (var i=0;i<arrVirtDev.length;i++) {
+         anzahl++;
+       
+       
+          counter++;
+   
+      var val0help=arrVirtDev[i].replace(/(.+)\..+$/,"$1");
+     val0=(getObject(val0help+".Script_Power").common.name).replace(/(.+)\..+/,"$1")
+ 
+      val1=true;
+       val2=" - "; val3=" - ";
+       val4=getState(val0help+".Script_Power").val+" W"
+       let val7_1=getState(arrVirtDev[i]).val;        
+         val7_1 ? val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val5=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";
+      var sourcerhelper=(val0help+".Script_Total").replace(/\./g,"__");
+ 
+           val6=" - "; val7=" - "; val8=" - "; val9=" - "; 
+         valMarkeDevice="virtualpowermeterk" 
+        valSwitchDevice=val7_1;
+           //log(val0)
+          if (virtualPower) {brechneEnergy(val0,getState(val0help+".Script_Power").val); 
+        if (rootCounter){
+            sammleDaten();
+            berechneGesamt()
+             } }
+               val0=(getObject(val0help+".Script_Power").common.name).replace(/(.+)\..+/,"$1")      
+               zeigeVal1();
+   
+     if (!filterArrAusnahme.includes(val0)) {
+       //  val0=val0.replace(/\.STATE/,"")
+         tabelleBind();  
+        } else{let help=[val0,val1,val2,val3,val4,val5,val6,val7,val8,val9]; filterArrAusnahmeHelp.push(help);}
+  
+   }; 
+} //ende virtual
+ 
+ if (virtualPowerGesamt){
+counter=0
+    
+      counter++//=0;
+      val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind();  
+   
+      counter++//=0;
+      val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">VirtualPower Gesamt</"+HTMLbrandSetting+"></font>"; val1=""; val2="";val3="";val4="";
+      val5="<font color=\""+htmlColorDeviceUeberschrift+"\">";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+      tabelleBind();  
+     
+      
+  // keine schleife nötig
+ 
+         anzahl++;
+     
+          counter++;
+ 
+      val0="Gesamt" 
+ 
+      val1=true;
+       val2=" - "; val3=" - ";
+       val4= getState("virtualpowermeter.0.group_script.Virtual_Energy_Power_group_script").val+" W";
+       val5=" - "; 
+           val6=" - "; val7=" - "; val8=" - "; val9=" - "; 
+       valMarkeDevice="infok" 
+          if (virtualPowerGesamt) {brechneEnergy(val0,getState("virtualpowermeter.0.group_script.Virtual_Energy_Power_group_script").val); 
+        if (rootCounter){
+            sammleDaten();
+        if(!virtualPower) berechneGesamt()} } 
+        zeigeVal1();
+        if (!filterArrAusnahme.includes(val0)) {
+         tabelleBind();  
+         } else{let help=[val0,val1,val2,val3,val4,val5,val6,val7,val8,val9]; filterArrAusnahmeHelp.push(help);}
+   
+ 
+} //ende virtual
+ 
+ 
+if (pow){
+    counter=0
+             
+      
+      counter++//=0;
+      val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind();  
+      
+      counter++//=0;
+      val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Tasmota</"+HTMLbrandSetting+"></font>"; val1=""; val2="";val3="";val4="";
+      val5="<font color=\""+htmlColorDeviceUeberschrift+"\"></font>";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+      tabelleBind();  
+      
+     
+ 
+ 
+ $('sonoff.*.*.INFO.Module').each(function(id, i) {           
+   
+      if (getState(id).val=="Sonoff Pow" || getState(id).val=="Sonoff Pow R2" || getState(id).val=="Shelly 2.5") {
+         // log (id)
+         anzahl++;
+        var ida = id.split('.');
+       
+          counter++; 
+            
+          val1=getState(id.replace("INFO.Module","alive")).val;                   
+          val0=getObject(ida[0]+"."+ida[1]+"."+ida[2]).common.name ;
+          val3=getState(id.replace("INFO.Module","ENERGY_Voltage")).val.toString()+" V"; 
+ 
+          if (getState(id).val=="Shelly 2.5") {
+           val4=(getState(id.replace("INFO.Module","ENERGY_ApparentPower_0")).val + getState(id.replace("INFO.Module","ENERGY_ApparentPower_1")).val).toString()+" W" 
+           val2=(((getState(id.replace("INFO.Module","ENERGY_Current_0")).val)*1000)+((getState(id.replace("INFO.Module","ENERGY_Current_1")).val)*1000)).toString()+ " mA";
+ 
+           let val7_1=getState(id.replace("INFO.Module","POWER1")).val;        
+          val7_1 ? val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val5=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";
+          let val5_1;
+          let val8_1=getState(id.replace("INFO.Module","POWER2")).val;        
+          val8_1 ? val5_1=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val5_1=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";
+          val5 = val5 + " " + val5_1;
+           val6=" - "; val7=" - "; val8=" - "; val9=" - "; 
+          valMarkeDevice="sonoffk" 
+ 
+       //  if (sourceAnalyPow) {brechneEnergy(val0,getState(id.replace("INFO.Module","ENERGY_Power")).val); 
+           if (sourceAnalyPow) {brechneEnergy(val0,(getState(id.replace("INFO.Module","ENERGY_ApparentPower_0")).val + getState(id.replace("INFO.Module","ENERGY_ApparentPower_1")).val)); 
+        if (rootCounter){
+            sammleDaten()
+            berechneGesamt()
+             }
+          }    
+ 
+          } else {
+ 
+          val4=getState(id.replace("INFO.Module","ENERGY_Power")).val.toString()+ " W"                     
+          val2=((getState(id.replace("INFO.Module","ENERGY_Current")).val)*1000).toString()+ " mA";   
+          let val7_1=getState(id.replace("INFO.Module","POWER")).val;        
+          val7_1 ? val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val5=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";
+           val6=" - "; val7=" - "; val8=" - "; val9=" - "; 
+          valMarkeDevice="sonoffk"   
+          
+ 
+ 
+          if (sourceAnalyPow) {brechneEnergy(val0,getState(id.replace("INFO.Module","ENERGY_Power")).val); 
+        if (rootCounter){
+            sammleDaten()
+            berechneGesamt()
+             }
+          }
+              }  // else von shelly 2.5
+        
+      zeigeVal1();
+      if (!filterArrAusnahme.includes(val0)) {
+         tabelleBind();  
+        } else{let help=[val0,val1,val2,val3,val4,val5,val6,val7,val8,val9]; filterArrAusnahmeHelp.push(help);}
+  
+  } }); 
+} //ende fritzdect
+ if (teckin){
+counter=0
+             
+     
+      counter++//=0;
+      val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind();  
+      
+      counter++//=0;
+      val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Teckin</"+HTMLbrandSetting+"></font>"; val1=""; val2="";val3="";val4="";
+      val5="<font color=\""+htmlColorDeviceUeberschrift+"\"></font>";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+      tabelleBind();  
+     
+       
+ 
+ 
+ $('sonoff.*.*.INFO.Module').each(function(id, i) {           
+   
+      if (getState(id).val=="Teckin") {
+         // log (id)
+         anzahl++;
+        var ida = id.split('.');
+       
+          counter++; 
+         
+          val1=getState(id.replace("INFO.Module","alive")).val;                 
+          val0=getObject(ida[0]+"."+ida[1]+"."+ida[2]).common.name ;
+          val4=getState(id.replace("INFO.Module","ENERGY_Power")).val.toString()+ " W"                       
+          val2=((getState(id.replace("INFO.Module","ENERGY_Current")).val)*1000).toString()+ " mA"; 
+          val3=getState(id.replace("INFO.Module","ENERGY_Voltage")).val.toString()+" V"; 
+          let val7_1=getState(id.replace("INFO.Module","POWER")).val;        
+          val7_1 ? val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val5=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";
+          val6=" - "; val7=" - "; val8=" - "; val9=" - "; 
+          valMarkeDevice="techink"  
+         
+          if (sourceAnalyTeck) {brechneEnergy(val0,getState(id.replace("INFO.Module","ENERGY_Power")).val)
+        if (rootCounter){
+            sammleDaten();
+           berechneGesamt()
+             } }
+        
+      zeigeVal1();
+      if (!filterArrAusnahme.includes(val0)) {
+         tabelleBind();  
+        } else{let help=[val0,val1,val2,val3,val4,val5,val6,val7,val8,val9]; filterArrAusnahmeHelp.push(help);}
+  
+  } }); 
+} //ende fritzdect
+ 
+if (blitzwolf){
+ counter=0
+            
+    
+     counter++//=0;
+     val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+     tabelleBind();  
+     
+     counter++//=0;
+     val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">BlitzWolf SHP</"+HTMLbrandSetting+"></font>"; val1=""; val2="";val3="";val4="";
+     val5="<font color=\""+htmlColorDeviceUeberschrift+"\"></font>";
+     val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+     val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+     val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+     val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+     tabelleBind();  
+ 
+    
+ 
+ 
+$('sonoff.*.*.INFO.Module').each(function(id, i) {           
+  
+     if (getState(id).val=="BlitzWolf SHP"  || getState(id).val=="BlitzWolf SHP7" || getState(id).val=="BlitzWolf SHP8" || getState(id).val=="BlitzWolf SHP6") {
+        // log (id)
+        anzahl++;
+       var ida = id.split('.');
+      
+         counter++; 
+            
+         val1=getState(id.replace("INFO.Module","alive")).val;                 
+         val0=getObject(ida[0]+"."+ida[1]+"."+ida[2]).common.name ;
+         val4=getState(id.replace("INFO.Module","ENERGY_Power")).val.toString()+ " W"                        
+         val2=getState(id.replace("INFO.Module","ENERGY_Current")).val.toFixed(2)+ " A";    
+         val3=getState(id.replace("INFO.Module","ENERGY_Voltage")).val.toString()+" V"; 
+         let val5_1=getState(id.replace("INFO.Module","POWER")).val;        
+         val5_1 ? val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val5=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";
+         var val7_2; var val8_2; 
+         if ( getState(id).val=="BlitzWolf SHP7") {
+             let val7_1=getState(id.replace("INFO.Module","POWER1")).val;        
+         val7_1 ? val7_2=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val7_2=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";
+         let val8_1=getState(id.replace("INFO.Module","POWER2")).val;        
+         val8_1 ? val8_2=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val8_2=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";
+         val5=val7_2+" "+val8_2;
+         }
+          val6=" - "; val7=" - "; val8=" - "; val9=" - "; 
+          valMarkeDevice="blitzwolfk" 
+       
+           if (sourceAnalyBlitz) {brechneEnergy(val0,getState(id.replace("INFO.Module","ENERGY_Power")).val)
+        if (rootCounter){
+            sammleDaten();
+         berechneGesamt()
+           } }
+        
+      zeigeVal1();
+      if (!filterArrAusnahme.includes(val0)) {
+         tabelleBind();  
+        } else{let help=[val0,val1,val2,val3,val4,val5,val6,val7,val8,val9]; filterArrAusnahmeHelp.push(help);}
+   
+ } }); 
+} //ende fritzdect
+ 
+ if (gosundSP1x){
+counter=0
+             
+     
+      counter++//=0;
+      val0=val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind();  
+       
+      counter++//=0;
+     val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Gosund</"+HTMLbrandSetting+"></font>"; val1=""; val2="";val3="";val4="";
+      val5="<font color=\""+htmlColorDeviceUeberschrift+"\"></font>";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+      tabelleBind();  
+       
+      
+ 
+ 
+ $('sonoff.*.*.INFO.Module').each(function(id, i) {           
+   
+      if (getState(id).val.includes("Gosund SP1") || getState(id).val.includes("SP11") || getState(id).val.includes("Gosund SP111") || getState(id).val.includes("SP112")) {
+         // log (id)
+         anzahl++;
+        var ida = id.split('.');
+       
+          counter++; 
+             
+          val1=getState(id.replace("INFO.Module","alive")).val;                 
+          val0=getObject(ida[0]+"."+ida[1]+"."+ida[2]).common.name ;
+          val4=getState(id.replace("INFO.Module","ENERGY_Power")).val.toString()+ " W"                        
+          val2=((getState(id.replace("INFO.Module","ENERGY_Current")).val)*1000).toString()+ " mA";    
+          val3=getState(id.replace("INFO.Module","ENERGY_Voltage")).val.toString()+" V"; 
+          var val7_2; var val8_2; 
+          if (getState(id).val=="SP112") {
+               let val7_1=getState(id.replace("INFO.Module","POWER1")).val;        
+         val7_1 ? val7_2=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val7_2=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";
+         let val8_1=getState(id.replace("INFO.Module","POWER2")).val;        
+         val8_1 ? val8_2=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val8_2=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";
+         val5=val7_2+" "+val8_2;
+          }
+          
+           else{
+          let val7_1=getState(id.replace("INFO.Module","POWER")).val;        
+          val7_1 ? val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val5=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";}
+          val6=" - "; val7=" - "; val8=" - "; val9=" - "; 
+          valMarkeDevice="gosundk" 
+   
+          if (sourceAnalyGo) {brechneEnergy(val0,getState(id.replace("INFO.Module","ENERGY_Power")).val)
+        if (rootCounter){
+            sammleDaten();
+            berechneGesamt()
+             } }
+        
+      zeigeVal1();
+      if (!filterArrAusnahme.includes(val0)) {
+         tabelleBind();  
+        } else{let help=[val0,val1,val2,val3,val4,val5,val6,val7,val8,val9]; filterArrAusnahmeHelp.push(help);}  
+    
+  } }); 
+} //ende fritzdect
+ if (homee){
+counter=0
+             
+   
+      counter++//=0;
+      val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind();  
+       
+      counter++//=0;
+      val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Homee</"+HTMLbrandSetting+"></font>"; val1=""; val2="";val3="";val4="";
+      val5="<font color=\""+htmlColorDeviceUeberschrift+"\"></font>";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+      tabelleBind();  
+     
+       
+ 
+ 
+ 
+ $("homee.*.*.CurrentEnergyUse*").each(function(id, i) {    
+      var ida = id.split('.');       
+      var arrHomee=[]
+            $(ida[0]+"."+ida[1]+"."+ida[2]+".*" ).each(function(id, i) { 
+              arrHomee.push(id)
+ 
+            });
+ 
+       
+         anzahl++;
+        
+       
+          counter++; 
+         
+          val0=getObject(ida[0]+"."+ida[1]+"."+ida[2]).common.name ;
+          val1=true;
+          //var val2_1;var val3_1;
+          val2=" - "; val3=" - ";
+          for (var i=0;i<arrHomee.length;i++){if(arrHomee[i].includes("Current-"))  val2=(getState(arrHomee[i]).val)*1000 +" mA"}
+          for (var i=0;i<arrHomee.length;i++){if(arrHomee[i].includes("Voltage"))  val3=(getState(arrHomee[i]).val) +" V"}
+          
+          val4=getState(id).val.toString()+" W";
+          var val4help=getState(id).val
+          
+          var val5_1;
+          for (var i=0;i<arrHomee.length;i++){if(arrHomee[i].includes("OnOff"))  val5_1=getState(arrHomee[i]).val}
+ 
+           val5_1 ? val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val5=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";
+           if (!val5_1) {val4="0 W"; val4help=0;/*val1=true*/}
+           val6=" - "; val7=" - "; val8=" - "; val9=" - "; 
+           valMarkeDevice="homeek" 
+     //  val1=true
+ 
+                      if (sourceAnalyHomee) {brechneEnergy(val0,val4help) //Sonderfall da kein status am gerät sondern doppelbelegung
+        if (rootCounter){
+ 
+            
+            sammleDaten();
+            berechneGesamt()
+             } }
+        
+      zeigeVal1();
+      if (!filterArrAusnahme.includes(val0)) {
+         tabelleBind();  
+        } else{let help=[val0,val1,val2,val3,val4,val5,val6,val7,val8,val9]; filterArrAusnahmeHelp.push(help);}  
+  
+   }); 
+} //ende fritzdect
+ 
+ 
+ if (shelly){
+counter=0
+             
+     
+      counter++//=0;
+      val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind();  
+      tabelleAusbessern();
+      counter++//=0;
+      val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Shelly</"+HTMLbrandSetting+"></font>"; val1=""; val2="";val3="";val4="";
+      val5="<font color=\""+htmlColorDeviceUeberschrift+"\"></font>";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+      tabelleBind();  
+     
+     
+lastID="";
+ 
+ $('shelly.*.*.*.Power').each(function(id, i) {           
+   
+    
+        
+         anzahl++;
+        var ida = id.split('.');
+          
+          counter++; 
+          
+            
+          val0=getObject(ida[0]+"."+ida[1]+"."+ida[2]).common.name ; //log(val0+"---" +lastID)
+          if (val0 == lastID) {lastID=val0; shellyNumber++; val0=val0+"("+shellyNumber.toString()+")"} else{lastID=val0; shellyNumber=1}
+          
+          val1=getState(ida[0]+"."+ida[1]+"."+ida[2]+".online").val
+          val2=" - "; val3=" - ";
+          if(existsState(id.replace("INFO.Module","ENERGY_Current"))) {
+          val2=((getState(id.replace("INFO.Module","ENERGY_Current")).val)).toString()+ " A"; }
+           if(existsState(id.replace("INFO.Module","ENERGY_Voltage"))) {
+          val3=getState(id.replace("INFO.Module","ENERGY_Voltage")).val.toString()+" V"; }
+          val4=getState(id).val.toString()+" W";
+          var val5_1;
+          if (existsState(id.replace("Power","Switch"))) {val5_1= getState(id.replace("Power","Switch")).val;
+             } else {val5_1= getState(ida[0]+"."+ida[1]+"."+ida[2]+".Relay0.Switch").val;  }
+          val5_1 ? val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val5=(" <font color=\""+farbeSchalterON+"\"> ")+"OFF</font>";
+ 
+           val6=" - "; val7=" - "; val8=" - "; val9=" - "; 
+           
+           valMarkeDevice="shellyk"
+          if (sourceAnalyShelly) {brechneEnergy(val0,getState(id).val)
+         
+             if (rootCounter){
+                 sammleDaten();
+            berechneGesamt()
+             } }
+        
+      zeigeVal1();
+      if (!filterArrAusnahme.includes(val0)) {
+         tabelleBind();  
+        } else{let help=[val0,val1,val2,val3,val4,val5,val6,val7,val8,val9]; filterArrAusnahmeHelp.push(help);}
+ 
+        
+    
+   }); 
+} //ende fritzdect
+ 
+ if (meross){
+counter=0
+             
+     
+      counter++//=0;
+      val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind();  
+      tabelleAusbessern();
+      counter++//=0;
+      val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Meross</"+HTMLbrandSetting+"></font>"; val1=""; val2="";val3="";val4="";
+      val5="<font color=\""+htmlColorDeviceUeberschrift+"\"></font>";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+      tabelleBind();  
+     
+ 
+ 
+ 
+ $('meross.*.*.0-power').each(function(id, i) {           
+   
+ 
+        
+         anzahl++;
+        var ida = id.split('.');
+       
+          counter++; 
+ 
+            
+          val0=getObject(ida[0]+"."+ida[1]+"."+ida[2]).common.name ; //log(val0)
+          val1=getState(ida[0]+"."+ida[1]+"."+ida[2]+".online").val
+          val2=" - "; val3=" - ";
+          val4=getState(id).val.toString()+" W";
+ 
+          var val5_1= getState(id.replace("0-power","0")).val;
+          val5_1 ? val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val5=(" <font color=\""+farbeSchalterON+"\"> ")+"OFF</font>";
+           val6=" - "; val7=" - "; val8=" - "; val9=" - "; 
+           valMarkeDevice="merossk" 
+ 
+          if (sourceAnalyMeross) {brechneEnergy(val0,getState(id).val)
+         
+             if (rootCounter){
+                 sammleDaten();
+            berechneGesamt()
+             } }
+        
+      zeigeVal1();
+      if (!filterArrAusnahme.includes(val0)) {
+         tabelleBind();  
+        } else{let help=[val0,val1,val2,val3,val4,val5,val6,val7,val8,val9]; filterArrAusnahmeHelp.push(help);}
+    
+   }); 
+} //ende fritzdect
+ 
+  if (fritzdect){
+counter=0
+             
+     
+      counter++//=0;
+      val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind();  
+      tabelleAusbessern();
+      counter++//=0;
+      val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">FritzDect</"+HTMLbrandSetting+"></font>"; val1=""; val2="";val3="";val4="";
+      val5="<font color=\""+htmlColorDeviceUeberschrift+"\"></font>";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+      tabelleBind();  
+     
+     
+ 
+ 
+ $('fritzdect.*.*.power').each(function(id, i) {           
+   
+ 
+        
+         anzahl++;
+        var ida = id.split('.');
+       
+          counter++; 
+ 
+            
+          val0=getObject(ida[0]+"."+ida[1]+"."+ida[2]).common.name ; //log(val0)
+          val1=getState(id.replace("power","present")).val; 
+          val2=" - ";
+          if (existsState(id.replace("power","voltage"))) {val3=Math.round(getState(id.replace("power","voltage")).val).toString()+" V";} else {val3=" - "};
+           
+          val4=getState(id).val.toString()+" W";
+ 
+          if (existsState(id.replace("power","voltage"))) val2=((getState(id).val)/(Math.round(getState(id.replace("power","voltage")).val))*1000).toFixed(0)+" mA"
+ 
+          var val5_1= getState(id.replace("Power","Switch")).val;
+          val5_1 ? val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val5=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";
+           val6=" - "; val7=" - "; val8=" - "; val9=" - "; 
+           valMarkeDevice="fritzk" 
+           if (val0=="FritzDect-PC Stübchen") valMarkeDevice="pcstuebchen"
+           if (val0=="FritzDect-Sessel Leselampe") valMarkeDevice="sesselleselampe"
+ 
+          if (sourceAnalyFritz) {brechneEnergy(val0,getState(id).val)
+         
+             if (rootCounter){
+                 sammleDaten();
+            berechneGesamt()
+             } }
+        
+      zeigeVal1();
+      if (!filterArrAusnahme.includes(val0)) {
+         tabelleBind();  
+        } else{let help=[val0,val1,val2,val3,val4,val5,val6,val7,val8,val9]; filterArrAusnahmeHelp.push(help);} 
+    
+   }); 
+} //ende fritzdect
+ 
+if (zigbee){
+counter=0
+             
+      
+      counter++//=0;
+      val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind();  
+     
+      counter++//=0;
+      val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Zigbee</"+HTMLbrandSetting+"></font>"; val1=""; val2="";val3="";val4="";
+      val5="<font color=\""+htmlColorDeviceUeberschrift+"\"></font>";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+      tabelleBind();  
+     
+ 
+ 
+ 
+ $('zigbee.*.*.load_power').each(function(id, i) {           
+   
+ 
+         // log (id)
+         anzahl++;
+        var ida = id.split('.');
+       
+          counter++; 
+ 
+           
+          val0=getObject(ida[0]+"."+ida[1]+"."+ida[2]).common.name ; //log(val0)
+          val1=getState(ida[0]+"."+ida[1]+"."+ida[2]+".available").val
+          val2=" - "; val3=" - ";
+          val4=getState(id).val.toString()+" W";
+ 
+          var val5_1= getState(id.replace("load_power","state")).val;
+          val5_1 ? val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val5=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";
+           val6=" - "; val7=" - "; val8=" - "; val9=" - "; 
+           valMarkeDevice="zigbeek" 
+       
+ 
+                      if (sourceAnalyZigbee) {brechneEnergy(val0,getState(id).val)
+             if (rootCounter){
+                 sammleDaten();
+            berechneGesamt()
+             } }
+        
+      zeigeVal1();
+      if (!filterArrAusnahme.includes(val0)) {
+         tabelleBind();  
+        } else{let help=[val0,val1,val2,val3,val4,val5,val6,val7,val8,val9]; filterArrAusnahmeHelp.push(help);} 
+    
+   }); 
+} //ende fritzdect
+ 
+ if (mihome){
+counter=0
+             
+     
+      counter++//=0;
+      val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind();  
+      
+      counter++//=0;
+      val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Mihome</"+HTMLbrandSetting+"></font>"; val1=""; val2="";val3="";val4="";
+      val5="<font color=\""+htmlColorDeviceUeberschrift+"\"></font>";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+      tabelleBind(); 
+     
+     
+ 
+ 
+ $('mihome.*.devices.*.load_power').each(function(id, i) {           
+   
+ 
+         // log (id)
+         anzahl++;
+        var ida = id.split('.');
+       
+          counter++; 
+ 
+              
+          val0=getObject(ida[0]+"."+ida[1]+"."+ida[2]+"."+ida[3]).common.name ; //log(val0)
+          val1=true;
+          val2=" - "; val3=" - ";
+          val4=getState(id).val.toString()+" W";
+ 
+          var val5_1= getState(id.replace("load_power","state")).val;
+          val5_1 ? val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val5=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";
+          val6=" - "; val7=" - "; val8=" - "; val9=" - "; 
+     valMarkeDevice="xiaomik" 
+ 
+                                 if (sourceAnalyMihome) {brechneEnergy(val0,getState(id).val)
+        if (rootCounter){
+            sammleDaten();
+            berechneGesamt()
+             } }
+        
+      zeigeVal1();
+      if (!filterArrAusnahme.includes(val0)) {
+         tabelleBind();  
+        } else{let help=[val0,val1,val2,val3,val4,val5,val6,val7,val8,val9]; filterArrAusnahmeHelp.push(help);}  
+    
+   }); 
+} //ende fritzdect
+ 
+ if (hs100){
+counter=0
+             
+     
+      counter++//=0;
+      val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind(); 
+      tabelleAusbessern();
+      counter++//=0;
+      val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">HS100</"+HTMLbrandSetting+"></font>"; val1=""; val2="";val3="";val4="";
+      val5="<font color=\""+htmlColorDeviceUeberschrift+"\"></font>";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+      tabelleBind(); 
+      
+   //   counter=-1
+ 
+ 
+ $('hs100.*.*.totalNow').each(function(id, i) {           
+   
+ 
+         // log (id)
+         anzahl++;
+        var ida = id.split('.');
+       
+          counter++; 
+          var valVersion=getState(id.replace("totalNow","hw_ver")).val;  
+          var val1_1=Date.parse(getState(id.replace("totalNow","last_update")).val); 
+          if (parseInt((new Date().getTime())) - val1_1 < 120000) {val1=true} else {val1=false;}  // log(val1.toString())          
+          val0=getObject(id).common.name ;
+        // log("---------"+val0)
+          var val4_1=getState(id.replace("totalNow","power")).val.toString();
+          val4=val4_1.substr(0, 4) + " W";            //getState(id.replace("totalNow","power")).val + " W"     ;    // log (val4)       //.substring(0,4)        
+          var val2_1=getState(id.replace("totalNow","current")).val.toString();
+          if(valVersion=="1.0")  {val2=val2_1.substr(0, 5) + " mA";} else {val2=val2_1+ " mA";}  
+          var val3_1=getState(id.replace("totalNow","voltage")).val.toString();
+          val3=val3_1.substring(0, 3)+" V";
+          var val5_1= getState(id.replace("totalNow","state")).val;
+          val5_1 ? val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>" : val5=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";
+          val6=" - "; 
+          val7=" - "; 
+          val8=" - "; 
+          val9=" - "; 
+          valMarkeDevice="tplinkk" 
+ 
+        if (sourceAnalyHS) {brechneEnergy(val0,parseFloat(getState(id.replace("totalNow","power")).val))
+        if (rootCounter){
+            sammleDaten();
+            berechneGesamt()
+             } }
+        
+      zeigeVal1();
+      if (!filterArrAusnahme.includes(val0)) {
+         tabelleBind();  
+        } else{let help=[val0,val1,val2,val3,val4,val5,val6,val7,val8,val9]; filterArrAusnahmeHelp.push(help);}
+    
+   }); 
+} //ende fritzdect
+ 
+ if (homematic){
+counter=0
+             
+     
+      counter++//=0;
+      val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind();  
+      
+      counter++//=0;
+      val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Homematic</"+HTMLbrandSetting+"></font>"; val1=""; val2="";val3="";val4="";
+      val5="<font color=\""+htmlColorDeviceUeberschrift+"\"></font>";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+      tabelleBind();  
+     
+     
+ 
+ 
+ $('hm-rpc.*.*.*.ENERGY_COUNTER').each(function(id, i) {          
+   
+var ida = id.split('.');
+             var arrFilt=[];
+           
+          $(ida[0]+"."+ida[1]+"."+ida[2]+"."+ida[3]+".*").each(function(id, i) {   // kontrolliere ob OPERATING_VOLTAGE vorhanden
+              var idc = id.split('.');
+           arrFilt.push(idc[4])
+           });
+ 
+        if (arrFilt.includes("VOLTAGE")&& arrFilt.includes("POWER") && arrFilt.includes("CURRENT")) {
+ 
+         anzahl++;
+        
+          var stateIdHM=ida[3].toString(); //log(stateIdHM+" -- " +id)
+          counter++; 
+             
+          val1=!getState(ida[0]+"."+ida[1]+"."+ida[2]+"."+"0"+".UNREACH").val   //getState(id.replace("ENERGY_COUNTER","STATE")).val;                  
+          val0=getObject(ida[0]+"."+ida[1]+"."+ida[2]).common.name ;  //val0=getObject(id).common.name ;
+          val4=getState(id.replace("ENERGY_COUNTER","POWER")).val+ " W"     ;     //log (val4)       //.substring(0,4)        
+          if (arrFilt.includes("CURRENT")) {val2=getState(id.replace("ENERGY_COUNTER","CURRENT")).val.toFixed(0)+ " mA";} else {val2="-"} 
+          if (arrFilt.includes("VOLTAGE")) {val3=getState(id.replace("ENERGY_COUNTER","VOLTAGE")).val.toFixed(0)+" V";}  else {val3="-"} 
+         
+          if (stateIdHM=="6") {
+             
+              var val5_1=getState(ida[0]+"."+ida[1]+"."+ida[2]+"."+"2"+".STATE").val;
+               if(val5_1) { val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>"} else { val5=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";}}
+                else { //val5="-"} 
+                     
+                     if (stateIdHM.match("2")) {var val5_1=getState(ida[0]+"."+ida[1]+"."+ida[2]+"."+"1"+".STATE").val ; val5_1 ? val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON" : val5=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF";} else {val5="-"}} 
+ 
+          val6=" - "; val7=" - "; val8=" - "; val9=" - "; 
+           valMarkeDevice="homematick" 
+           if (val0=="Geschirrspüler") valMarkeDevice="geschirrspueler"
+           if (val0=="Waschmaschine") valMarkeDevice="waschmaschine"
+ 
+ 
+        if (sourceAnalyHM) {brechneEnergy(val0,getState(id.replace("ENERGY_COUNTER","POWER")).val)
+        if (rootCounter){
+        sammleDaten();
+            berechneGesamt()
+             } }
+        
+      zeigeVal1();
+      if (!filterArrAusnahme.includes(val0)) {
+         tabelleBind();  
+        } else{let help=[val0,val1,val2,val3,val4,val5,val6,val7,val8,val9]; filterArrAusnahmeHelp.push(help);}
+    
+   }  }); 
+} //ende fritzdect
+ 
+ if (tuya){
+counter=0
+             
+     
+      counter++//=0;
+      val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind(); 
+     
+      counter++//=0;
+      val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Tuya</"+HTMLbrandSetting+"></font>"; val1=""; val2="";val3="";val4="";
+      val5="<font color=\""+htmlColorDeviceUeberschrift+"\"></font>";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+      tabelleBind(); 
+     
+   
+ 
+ 
+ $('tuya.*.*').each(function(id, i) {           
+  //  var arrFilt=[];
+    var ida = id.split('.');
+  //   var idb;
+    var checker=false;
+    var checkCur=false;
+    var checkVol=false;
+    var checkPow=false;
+    var checkOnline=false;
+    var val5_1=false;  var val5_2=false;
+  
+    //log(getObject(id).common.name)
+   if (getObject(id).common.name == "cur_power")  {checkCur=true; val4=getState(id).val.toString()+" W"; // log(val4.toString())
+            // log(id)       
+           
+          $(ida[0]+"."+ida[1]+"."+ida[2]+".*").each(function(id, i) {   
+              if (getObject(id).common.name == "cur_voltage")  {checkVol=true; val3=getState(id).val.toString()+" V"; }//log(val3.toString())}
+            });
+       
+          $(ida[0]+"."+ida[1]+"."+ida[2]+".*").each(function(id, i) {  
+               if (getObject(id).common.name == "cur_current")  {checkPow=true; val2=getState(id).val.toString()+" mA"; }//log(val2.toString())}
+               }); 
+            
+         $(ida[0]+"."+ida[1]+"."+ida[2]+".*").each(function(id, i) {   
+                if (getObject(id).common.name.includes("online"))  {checkOnline=true; val1=getState(id).val; }//log(val1.toString())}
+              
+               });  
+ 
+               val5_2=false;
+          $(ida[0]+"."+ida[1]+"."+ida[2]+".*").each(function(id, i) {   
+                if (getObject(id).common.name ==("power"))  { val5_2=true; val5_1=getState(id).val; }//log(val5_1.toString())}
+              
+               });  
+              }
+ 
+ 
+   
+   if (checkCur && checkPow && checkVol && checkOnline) checker=true;
+   if (checker) {
+ 
+ 
+//log (id)
+         anzahl++;
+        
+          var stateIdHM=ida[3]; //log(stateIdHM)
+          counter++; 
+                 
+          val0=getObject(ida[0]+"."+ida[1]+"."+ida[2]).common.name ;  //val0=getObject(id).common.name ;
+         if(val5_2) {if (val5_1)  {val5=(" <font color=\""+farbeSchalterON+"\"> ")+"ON</font>"} else { val5=(" <font color=\""+farbeSchalterOFF+"\"> ")+"OFF</font>";}}
+            else {if (val1) {val5=" - "} else { val5=(" <font color=\""+farbeSchalterOFF+"\"> ")+" - ";}} 
+ 
+       
+          val6=" - "; val7=" - "; val8=" - "; val9=" - "; 
+           valMarkeDevice="tuyak" 
+ 
+           if (sourceAnalyTuya) {brechneEnergy(val0,val4) 
+        if (rootCounter){
+            sammleDaten();
+            berechneGesamt()
+             } }
+        
+      zeigeVal1();
+      if (!filterArrAusnahme.includes(val0)) {
+         tabelleBind();  
+        } else{let help=[val0,val1,val2,val3,val4,val5,val6,val7,val8,val9]; filterArrAusnahmeHelp.push(help);}
+ 
+} }); 
+} //ende fritzdect
+if (gesamt){
+    counter=0
+      
+      counter++//=0;
+      val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind(); 
+     
+      counter++//=0;
+      val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">GESAMT</"+HTMLbrandSetting+"></font>";
+      val1="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">First Date</"+HTMLbrandSetting+"></font>";
+      val2="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">First Time</"+HTMLbrandSetting+"></font>";
+      val3="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">ct pro kWh<"+HTMLbrandSetting+"></font>";
+      val4="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Anzahl<"+HTMLbrandSetting+"></font>";
+      val5="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Update<"+HTMLbrandSetting+"></font>";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+ 
+      tabelleBind(); 
+     
+      
+      val0="alle Geräte";val1="";val2="";
+      if(rootCounter) val1=formatDate(getState(dpPrefix+"Tabelle_EnergieRechnung.Collection.FirstRun").val, "TT.MM.YY"); 
+      if(rootCounter) val2=formatDate(getState(dpPrefix+"Tabelle_EnergieRechnung.Collection.FirstRun").val, "SS:mm:ss");  
+      val3=kwhPreis+" ct";
+      val4=anzahl.toString();
+      if (virtualPower && !virtualPowerGesamt)   val4=anzahl.toString();
+      if (!virtualPower && virtualPowerGesamt)   val4=anzahl.toString()+"++";
+      if (virtualPower && virtualPowerGesamt)   val4=(anzahl-1).toString();
+      val5=formatDate(getDateObject((parseFloat((new Date().getTime())))), "SS:mm:ss");;
+   
+     let anzeigeNullerG=3; let anzeigeNullerG2=2;let anzeigeNullerG3=3; let anzeigeNullerG4=3;
+      if(gesamtMonth==0) anzeigeNullerG=0;
+      if(gesamtMonthBefore==0) anzeigeNullerG3=0
+      if(gesamtMonthMoneyBefore==0) anzeigeNullerG2=0;
+      if(gesamtNow==0) anzeigeNullerG4=0;
+      val6=(gesamtNow.toFixed(anzeigeNullerG4)+" kWh");
+      if (!mitMonatBeforeAnzeige) {val7=(gesamtMonth.toFixed(anzeigeNullerG)+" kWh");} else{val7=gesamtMonth.toFixed(anzeigeNullerG)+" ("+gesamtMonthBefore.toFixed(anzeigeNullerG3)+") kWh";}
+      val8=(gesamtMoneyTod.toFixed(2)+" €"); // log(val8)
+      if (!mitMonatBeforeAnzeige) {val9=(gesamtMoneyMon.toFixed(2)+" €");} else {val9=gesamtMoneyMon.toFixed(2)+" ("+gesamtMonthMoneyBefore.toFixed(anzeigeNullerG2)+") €";}
+       tabelleBind();
+ 
+ 
+   if ( braucheMaterialDesignWidgetTable || braucheMaterialDesignWidget ) {  
+let valkNow=val6.replace("kWh","");;
+let valkM=val7.replace(" kWh","");;
+let valEuNow=val8.replace(" €","");;
+let valEuM=val9.replace(" €",""); 
+let valMBefore=" - ";
+let valKostenBefore=" - ";
+if(mitMonatBeforeAnzeige){
+//  valMBefore=getState(dpPrefix+"Tabelle_EnergieRechnung."+"Gesamt"+".MonBeforekWh").val
+//  valKostenBefore=(Math.round((getState(dpPrefix+"Tabelle_EnergieRechnung."+"Gesamt"+".MonBeforekWh").val)*kwhPreis*100)/100).toString()
+  valMBefore=val7.replace(/.+\((.+)\).+/,"$1")
+  valKostenBefore=val9.replace(/.+\((.+)\).+/,"$1")
+  valkM=valkM.replace(/\(.+\)/,"");
+  valEuM=valEuM.replace(/\(.+\)/,"");
+  } 
+ 
+ 
+makeJsonWidget(val0+"</font>",symbolOK," - "," - "," - "," - ",valkNow,valkM,valEuNow,valEuM,"infok","",valMBefore,valKostenBefore)
+   }
+}
+ 
+if (filterArrAusnahmeHelp.length>0) {
+    counter=0
+      
+      counter++//=0;
+      val0=""; val1=""; val2="";val3="";val4="";val5="";val6="";val7="";val8="";val9="";
+      tabelleBind(); 
+     
+      counter++//=0;
+      val0="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">EINSPEISUNG</"+HTMLbrandSetting+"></font>";
+      val1="";
+      val2="";
+      val3="";
+      val4="";
+      val5="";
+      val6="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Now<"+HTMLbrandSetting+"></font>";
+      val7="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">kWh Monat<"+HTMLbrandSetting+"></font>";
+      val8="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Now<"+HTMLbrandSetting+"></font>";
+      val9="<font color=\""+htmlColorDeviceUeberschrift+"\"><"+HTMLbrandSetting+">Preis Monat<"+HTMLbrandSetting+"></font>";
+ 
+      tabelleBind(); 
+ 
+      for (var i=0; i<filterArrAusnahmeHelp.length;i++){
+           counter++
+               val0=filterArrAusnahmeHelp[i][0] ;
+               val1=filterArrAusnahmeHelp[i][1] ;
+               val2=filterArrAusnahmeHelp[i][2] ;
+               val3=filterArrAusnahmeHelp[i][3] ;
+               val4=filterArrAusnahmeHelp[i][4] ;
+               val5=filterArrAusnahmeHelp[i][5] ;
+               val6=filterArrAusnahmeHelp[i][6] ;
+               val7=filterArrAusnahmeHelp[i][7] ;
+               val8=filterArrAusnahmeHelp[i][8] ;
+               val9=filterArrAusnahmeHelp[i][9] ;
+ 
+            tabelleBind();
+      }
+ 
+}
+//-------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------Ende der schleife------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------------------------
+ 
+      tabelleFinish();  
+   
+      
+     
+      if (virtualPower && virtualPowerGesamt)   anzahl=anzahl-1;
+          setState(dpAnzahl,anzahl); 
+    rootCounter=true;
+     tagErinnern=false;    monatErinnern=false;
+} // function ende
+ 
+//MAIN:
+ 
+schedule(' * * * * * ',  function () {
+ writeHTML();
+ if (braucheEinFile) {writeFile(home, path ,htmlOut, function (error) { /* log('file written');*/  });}
+}); 
+ writeHTML();
+ 
+   				 function tabelleBind(){
+    
+  
+       switch (mehrfachTabelle) {  
+         case 1:   if(counter%2==0){ htmlOut=htmlOut+"<tr bgcolor=\""+farbeGeradeZeilen+"\"><td align="+Feld1lAlign+" >&ensp;"+val0+"&ensp;</td><td align="+Feld2lAlign+">&ensp;"+val1+"&ensp;</td><td align="+Feld3lAlign+
+                                                                      ">&ensp;"+val2+"&ensp;</td><td align="+Feld4lAlign+">&ensp;"+val3+"&ensp;</td><td align="+Feld5lAlign+">&ensp;"+val4+"&ensp;</td><td align="+
+                                                                      Feld6lAlign+">&ensp;"+val5+"&ensp;</td><td align="+Feld7lAlign+">&ensp;"+val6+"&ensp;</td><td align="+Feld8lAlign+">&ensp;"+val7+"&ensp;</td><td align="+
+                                                                      Feld9lAlign+">&ensp;"+val8+"&ensp;</td><td align="+Feld10lAlign+">&ensp;"+val9+"&ensp;</td></tr>"; break;}
+         else                      { htmlOut=htmlOut+"<tr bgcolor=\""+farbeUngeradeZeilen+"\"><td align="+Feld1lAlign+" >&ensp;"+val0+"&ensp;</td><td align="+Feld2lAlign+">&ensp;"+val1+"&ensp;</td><td align="+Feld3lAlign+
+                                               ">&ensp;"+val2+"&ensp;</td><td align="+Feld4lAlign+">&ensp;"+val3+"&ensp;</td><td align="+Feld5lAlign+">&ensp;"+val4+"&ensp;</td><td align="+Feld6lAlign+">&ensp;"+val5+
+                                             "&ensp;</td><td align="+Feld7lAlign+">&ensp;"+val6+"&ensp;</td><td align="+Feld8lAlign+">&ensp;"+val7+"&ensp;</td><td align="+Feld9lAlign+">&ensp;"+val8+"&ensp;</td><td align="+Feld10lAlign+
+                                               ">&ensp;"+val9+"&ensp;</td></tr>"; break;}
+        case 2:  if(counter%2==0)  {htmlOut = htmlOut+"<tr><td align="+Feld1lAlign+" >&ensp;"+val0+"&ensp;</td><td align="+Feld2lAlign+">&ensp;"+val1+"&ensp;</td><td align="+Feld3lAlign+">&ensp;"+val2+
+                                   "&ensp;</td><td align="+Feld4lAlign+">&ensp;"+val3+"&ensp;</td><td align="+Feld5lAlign+">&ensp;"+val4+"&ensp;</td><td align="+Feld6lAlign+">&ensp;"+val5+
+                                   "&ensp;</td><td align="+Feld7lAlign+">&ensp;"+val6+"&ensp;</td><td align="+Feld8lAlign+">&ensp;"+val7+"&ensp;</td><td align="+Feld9lAlign+">&ensp;"+val8+
+                                   "&ensp;</td><td align="+Feld10lAlign+">&ensp;"+val9+"&ensp;</td>"; } 
+                              else {htmlOut = htmlOut+"<td align="+Feld1lAlign+"  style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val0+"&ensp;</td><td  align="+Feld2lAlign+" style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val1+"&ensp;</td><td  align="+Feld3lAlign+" style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val2+"&ensp;</td><td  align="+Feld4lAlign+" style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val3+"&ensp;</td><td align="+Feld5lAlign+">&ensp;"+val4+"&ensp;</td><td align="+Feld6lAlign+">&ensp;"+val5+"&ensp;</td><td align="+Feld7lAlign+">&ensp;"+val6+"&ensp;</td><td align="+Feld8lAlign+">&ensp;"+val7+"&ensp;</td><td align="+Feld9lAlign+">&ensp;"+val8+"&ensp;</td><td align="+Feld10lAlign+">&ensp;"+val9+"&ensp;</td></tr>";} break;
+                                   
+        case 3: if(counter%3==0 )  {htmlOut = htmlOut+"<tr><td align="+Feld1lAlign+" >&ensp;"+val0+"&ensp;</td><td align="+Feld2lAlign+">&ensp;"+val1+"&ensp;</td><td align="+Feld3lAlign+">&ensp;"+val2+"&ensp;</td><td align="+Feld4lAlign+">&ensp;"+val3+"&ensp;</td><td align="+Feld5lAlign+">&ensp;"+val4+"&ensp;</td><td align="+Feld6lAlign+">&ensp;"+val5+"&ensp;</td><td align="+Feld7lAlign+">&ensp;"+val6+"&ensp;</td><td align="+Feld8lAlign+">&ensp;"+val7+"&ensp;</td><td align="+Feld9lAlign+">&ensp;"+val8+"&ensp;</td><td align="+Feld10lAlign+">&ensp;"+val9+"&ensp;</td>"; } 
+                              else { if(counter%3==1 )  { htmlOut = htmlOut+"<td align="+Feld1lAlign+"  style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val0+"&ensp;</td><td  align="+Feld2lAlign+" style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val1+"&ensp;</td><td  align="+Feld3lAlign+" style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val2+"&ensp;</td><td  align="+Feld4lAlign+" style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val3+"&ensp;</td><td align="+Feld5lAlign+">&ensp;"+val4+"&ensp;</td><td align="+Feld6lAlign+">&ensp;"+val5+"&ensp;</td><td align="+Feld7lAlign+">&ensp;"+val6+"&ensp;</td><td align="+Feld8lAlign+">&ensp;"+val7+"&ensp;</td><td align="+Feld9lAlign+">&ensp;"+val8+"&ensp;</td><td align="+Feld10lAlign+">&ensp;"+val9+"&ensp;</td>";} 
+                                               else    {htmlOut = htmlOut+"<td align="+Feld1lAlign+" >&ensp;"+val0+"&ensp;</td><td align="+Feld2lAlign+">&ensp;"+val1+"&ensp;</td><td align="+Feld3lAlign+">&ensp;"+val2+"&ensp;</td><td align="+Feld4lAlign+">&ensp;"+val3+"&ensp;</td><td align="+Feld5lAlign+">&ensp;"+val4+"&ensp;</td><td align="+Feld6lAlign+">&ensp;"+val5+"&ensp;</td><td align="+Feld7lAlign+">&ensp;"+val6+"&ensp;</td><td align="+Feld8lAlign+">&ensp;"+val7+"&ensp;</td><td align="+Feld9lAlign+">&ensp;"+val8+"&ensp;</td><td align="+Feld10lAlign+">&ensp;"+val9+"&ensp;</td></tr>";}
+                                         } break;
+ 
+ 
+        case 4: if(counter%4==0)  {htmlOut = htmlOut+"<tr><td align="+Feld1lAlign+" >&ensp;"+val0+"&ensp;</td><td align="+Feld2lAlign+">&ensp;"+val1+"&ensp;</td><td align="+Feld3lAlign+">&ensp;"+val2+"&ensp;</td><td align="+Feld4lAlign+">&ensp;"+val4+"&ensp;</td><td align="+Feld5lAlign+">&ensp;"+val3+"&ensp;</td><td align="+Feld6lAlign+">&ensp;"+val5+"&ensp;</td><td align="+Feld7lAlign+">&ensp;"+val6+"&ensp;</td><td align="+Feld8lAlign+">&ensp;"+val7+"&ensp;</td><td align="+Feld9lAlign+">&ensp;"+val8+"&ensp;</td><td align="+Feld10lAlign+">&ensp;"+val9+"&ensp;</td>"; } 
+                                  else {if(counter%2==1 )  { htmlOut = htmlOut+"<td  align="+Feld1lAlign+" style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val0+"&ensp;</td><td  align="+Feld2lAlign+" style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val1+"&ensp;</td><td  align="+Feld3lAlign+" style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val2+"&ensp;</td><td  align="+Feld4lAlign+" style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val3+"&ensp;</td><td align="+Feld5lAlign+">&ensp;"+val4+"&ensp;</td><td align="+Feld6lAlign+">&ensp;"+val5+"&ensp;</td><td align="+Feld7lAlign+">&ensp;"+val6+"&ensp;</td><td align="+Feld8lAlign+">&ensp;"+val7+"&ensp;</td><td align="+Feld9lAlign+">&ensp;"+val8+"&ensp;</td><td align="+Feld10lAlign+">&ensp;"+val9+"&ensp;</td>";} 
+                                               else    {if(counter%2==1 && counter%4==3)  { htmlOut= htmlOut+"<td align="+Feld1lAlign+"  style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val0+"&ensp;</td><td  align="+Feld2lAlign+" style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val1+"&ensp;</td><td align="+Feld3lAlign+" style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val2+"&ensp;</td><td  align="+Feld4lAlign+" style=\"color:"+htmlFarbFelderschrift2+"\">&ensp;"+val3+"&ensp;</td><td align="+Feld5lAlign+">&ensp;"+val4+"&ensp;</td><td align="+Feld6lAlign+">&ensp;"+val5+"&ensp;</td><td align="+Feld7lAlign+">&ensp;"+val6+"&ensp;</td><td align="+Feld8lAlign+">&ensp;"+val7+"&ensp;</td><td align="+Feld9lAlign+">&ensp;"+val8+"&ensp;</td><td align="+Feld10lAlign+">&ensp;"+val9+"&ensp;</td></tr>";} 
+                                                                 else    {htmlOut  = htmlOut+"<td align="+Feld1lAlign+" >&ensp;"+val0+"&ensp;</td><td>&ensp;"+val1+"&ensp;</td><td align="+Feld2lAlign+">&ensp;"+val2+"&ensp;</td><td align="+Feld3lAlign+">&ensp;"+val3+"&ensp;</td><td align="+Feld4lAlign+">&ensp;"+val4+"&ensp;</td><td align="+Feld6lAlign+">&ensp;"+val5+"&ensp;</td><td align="+Feld7lAlign+">&ensp;"+val6+"&ensp;</td><td align="+Feld8lAlign+">&ensp;"+val7+"&ensp;</td><td align="+Feld9lAlign+">&ensp;"+val8+"&ensp;</td><td align="+Feld10lAlign+">&ensp;"+val9+"&ensp;</td>";}}
+                                         } break;
+ 
+     } //switch ende
+ 
+ 
+ 
+}
+ 
+ 
+function tabelleAusbessern() {
+       switch (mehrfachTabelle) {  
+         case 1:    break;
+         case 2:    mix=Math.abs(((counter+1)%2)-mehrfachTabelle);  
+                    if(mix==1)  htmlOut = htmlOut.replace(/<\/td>$/, '</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td></tr>');       
+                    break;
+         case 3:    mix =Math.abs(((counter+1)%3)-mehrfachTabelle);
+                    if(mix==1)  htmlOut = htmlOut.replace(/<\/td>$/, '</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td></tr>');       
+                    if(mix==2)  htmlOut = htmlOut.replace(/<\/td>$/, '</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td></tr>');   
+                    break;
+         case 4:    mix=Math.abs(((counter+1)%4)-mehrfachTabelle);
+                    if(mix==1)  htmlOut = htmlOut.replace(/<\/td>$/, '</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td></tr>');
+                    if(mix==2)  htmlOut = htmlOut.replace(/<\/td>$/, '</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td></tr>');    
+                    if(mix==3)  htmlOut = htmlOut.replace(/<\/td>$/, '</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td></tr>');      
+                    break; }
+}
+function tabelleFinish() {
+ 
+      // tabelle fertigstellen
+       switch (mehrfachTabelle) {  
+         case 1:    break;
+         case 2:    mix=Math.abs(((counter+1)%2)-mehrfachTabelle);  
+                    if(mix==1)  htmlOut = htmlOut.replace(/<\/td>$/, '</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td></tr>');       
+                    break;
+         case 3:    mix =Math.abs(((counter+1)%3)-mehrfachTabelle);
+                    if(mix==1)  htmlOut = htmlOut.replace(/<\/td>$/, '</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td></tr>');       
+                    if(mix==2)  htmlOut = htmlOut.replace(/<\/td>$/, '</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td></tr>');   
+                    break;
+         case 4:    mix=Math.abs(((counter+1)%4)-mehrfachTabelle);
+                    if(mix==1)  htmlOut = htmlOut.replace(/<\/td>$/, '</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td></tr>');
+                    if(mix==2)  htmlOut = htmlOut.replace(/<\/td>$/, '</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td></tr>');    
+                    if(mix==3)  htmlOut = htmlOut.replace(/<\/td>$/, '</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td><td>&ensp;</td></tr>');      
+                    break; }
+     
+                    var htmlUeber=    "<p style=\"color:"+htmlFarbUber+"; font-family:"+htmlSchriftart+"; font-size: "+htmlÜberFontGroesse+"; font-weight:"+htmlSchriftWeite+ "\">"+htmlFeldUeber+"&ensp;&ensp;Last Update: "+formatDate(getDateObject((parseFloat((new Date().getTime())))), "SS:mm:ss");+"</p>"; 
+       var htmlUnter= "<div  style=\"color:"+htmlFarbUber+"; font-family:"+htmlSchriftart+"; font-size: 70%; text-align: right;\" >"+htmlFeldUeber+"&ensp;&ensp;Last Update: "+formatDate(getDateObject((parseFloat((new Date().getTime())))), "SS:mm:ss");+"</div>"
+        
+        if (!htmlSignature) htmlUnter="";
+         
+           var htmlOutVIS="";
+         
+            if (htmlUberschrift) 
+                { zentriert ? htmlOutVIS=htmlZentriert+htmlUeber+htmlTabStyle+htmlTabUeber+htmlOut+"</table>"+htmlUnter : htmlOutVIS=htmlUeber+htmlTabStyle+htmlTabUeber+htmlOut+"</table>"+htmlUnter ;
+ 
+              } else {
+               zentriert ?  htmlOutVIS=htmlZentriert+htmlTabStyle+htmlTabUeber+htmlOut+"</table>"+htmlUnter :  htmlOutVIS=htmlTabStyle+htmlTabUeber+htmlOut+"</table>"+htmlUnter;
+ 
+                 }
+ 
+// log("bin raus aus tabelleBind");
+           if (braucheEinVISWidget) setState(dpVIS, htmlOutVIS );
+ 
+ var htmlUnter= "<div  style=\"color:"+htmlFarbUber+"; font-family:"+htmlSchriftart+"; font-size: 80%;  text-align: center; \" >"+htmlFeldUeber+"&ensp;&ensp;Last Update: "+formatDate(getDateObject((parseFloat((new Date().getTime())))), "SS:mm:ss");+"</div>"
+ 
+ if (!htmlSignature) htmlUnter="";
+ var htmlEnd="</table>"+htmlUnter+"</div></body>";
+ //mit oder ohne überschrift - zentriert oder links
+htmlUberschrift ? htmlOut=htmlStart+htmlUeber+htmlTabStyle+htmlTabUeber+htmlOut+htmlEnd : htmlOut=htmlStart+htmlTabStyle+htmlTabUeber+htmlOut+htmlEnd;
+ //log(htmlOut);
+  if (braucheMaterialDesignWidget) {
+     
+       setState(dpMaterialWidget,JSON.stringify(myJsonWidget2)); 
+       myJsonWidget2=[];
+}
+if (braucheMaterialDesignWidgetTable) {
+  
+  setState(dpMaterialWidgetTable,JSON.stringify(myJsonWidget)); 
+     myJsonWidget=[];
+}
+ 
+}
+function brechneEnergy( nameDevice,watt) {
+    
+    let minArrData=0;
+    let monArrData=0;
+     let helpKwhMonth=0;
+    if(!rootCounter) createDp(nameDevice);
+    if (rootCounter) {
+   //  log(typeof fehlerMin)   
+    var minhelper=0;
+    var geamthelp=0;
+    var monhelper=0;
+   
+ 
+   
+    minArrData=getState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".todaykWh").val   //holt existierende min werte
+    if (val1) minArrData=minArrData+((parseFloat(watt))/60)/1000;
+    minArrData=(Math.round(minArrData*10000)/10000);
+    
+    setState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".todaykWh",minArrData );
+    let helpKwhToday=(getState(dpPrefix+"Tabelle_EnergieRechnung.Collection."+nameDevice+".mins").val)+1
+    setState(dpPrefix+"Tabelle_EnergieRechnung.Collection."+nameDevice+".mins",helpKwhToday) // insgesamte minuten
+
+        
+ 
+       if (tagErinnern && !monatErinnern ){
+     
+     
+     let monArrData=getState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".MonGeskWh").val     //.split(",");
+     monArrData=monArrData+minArrData
+     monArrData=(Math.round(monArrData*10000)/10000);
+      log("bin in Tag ende  "+monArrData)
+     setState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".MonGeskWh",monArrData ); //setzt monatsarray neu
+     setState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".todaykWh",0 );//reset tag
+     setState(dpPrefix+"Tabelle_EnergieRechnung.Collection."+nameDevice+".mins",0) // reset minuten pro tag 
+     helpKwhMonth=(getState(dpPrefix+"Tabelle_EnergieRechnung.Collection."+nameDevice+".tage").val)+1 //setze tage dees monats
+     setState(dpPrefix+"Tabelle_EnergieRechnung.Collection."+nameDevice+".tage",helpKwhMonth) // insgesamte minuten
+  }
+   if (monatErinnern){
+       
+       let monArrData=getState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".MonGeskWh").val     //.split(",");
+       monArrData=monArrData+minArrData
+       setState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".MonGeskWh",monArrData ); 
+       log("bin in monat ende "+monArrData );
+       setState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".MonBeforekWh", monArrData); //setze monatges auf monatbefore
+       var geamtNeu1=[];
+    if(getState(dpPrefix+"Tabelle_EnergieRechnung.Collection.GesamtMonate").val !=null ) {
+                        geamtNeu1=JSON.parse(getState(dpPrefix+"Tabelle_EnergieRechnung.Collection.GesamtMonate").val); 
+                        geamtNeu1.push({
+                                     "Monat": formatDate(getDateObject((parseFloat((new Date().getTime())-86400000))),  " O JJJJ"),
+                                     "Value": monArrData
+                         });
+                        setState(dpPrefix+"Tabelle_EnergieRechnung.Collection.GesamtMonate",JSON.stringify(geamtNeu1))
+       
+        } else{
+       geamtNeu1.push({
+           "Monat": formatDate(getDateObject((parseFloat((new Date().getTime())-86400000))),  " O JJJJ"),
+           "Value": monArrData
+       });setState(dpPrefix+"Tabelle_EnergieRechnung.Collection.GesamtMonate",JSON.stringify(geamtNeu1))
+       }
+     
+       setState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".MonGeskWh",0 ); //setzt monatsarray neu 
+       setState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".todaykWh",0 );  //setzt tagessarray neu 
+       setState(dpPrefix+"Tabelle_EnergieRechnung.Collection."+nameDevice+".mins",0) // reset minuten pro tag  
+       setState(dpPrefix+"Tabelle_EnergieRechnung.Collection."+nameDevice+".tage",0) 
+       } 
+        
+ //FÜR ANZREIGE
+   
+   geamthelp=minArrData+(getState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".MonGeskWh").val);
+ 
+   setState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".monkWh", Math.round(geamthelp*1000)/1000);
+ 
+}
+ 
+}
+ 
+function createDp(nameDevice){
+     
+ 
+ if (!existsState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".todaykWh") )createState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".todaykWh", 0,  { name: 'todaykWh Heute', desc: 'seit 00:00', type: 'number',   role: '',read: true, write: true });                 
+ if (!existsState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".monkWh") )createState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".monkWh", 0,  { name: 'Monat plus Minuten Anzeige', desc: 'monkWh Anzeige', type: 'number',   role: '',read: true, write: true  });
+ if (!existsState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".MonGeskWh") )createState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".MonGeskWh", 0,  { name: 'Tage des Monats GESAMT', desc: 'seit 01.xx', type: 'number',   role: '',read: true, write: true  });
+ if (!existsState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".MonBeforekWh") )createState(dpPrefix+"Tabelle_EnergieRechnung."+nameDevice+".MonBeforekWh", 0,  { name: 'monkWh', desc: 'monkWh', type: 'number',   role: '',read: true, write: true  });
+ if (!existsState(dpPrefix+"Tabelle_EnergieRechnung.Collection."+nameDevice+".mins") )createState(dpPrefix+"Tabelle_EnergieRechnung.Collection."+nameDevice+".mins",0,   { name: 'daykWh', desc: 'daykWh', type: 'number',   role: '',read: true, write: true });
+ if (!existsState(dpPrefix+"Tabelle_EnergieRechnung.Collection."+nameDevice+".tage") )createState(dpPrefix+"Tabelle_EnergieRechnung.Collection."+nameDevice+".tage", 0,  { name: 'daykWh', desc: 'daykWh', type: 'number',   role: '',read: true, write: true });
+ if (!existsState(dpPrefix+"Tabelle_EnergieRechnung.Collection.FirstRun") ) createState(dpPrefix+"Tabelle_EnergieRechnung.Collection.FirstRun", parseFloat((new Date().getTime())),  { name: 'FirstRun', desc: 'FirstRun', type: 'number',   role: '',read: true, write: true });
+ if (!existsState(dpPrefix+"Tabelle_EnergieRechnung.Collection.GesamtMonate") ) createState(dpPrefix+"Tabelle_EnergieRechnung.Collection.GesamtMonate", null, { name: 'GesamtMonate', desc: 'GesamtMonate', type: 'string',   role: '',read: true, write: true });
+ 
+    }
+ 
+    schedule("0 0 * * *",  function () {   
+ 
+   tagErinnern=true;
+   if ( formatDate(getDateObject((new Date().getTime())), "TT").toString() =="01" )
+        {monatErinnern=true; }  else{  monatErinnern=false;  }    });
+ 
+ 
+ 
+function sammleDaten() { 
+ //   log(gesamtMonth.toString())
+                 let anzeigeNuller=3; //log(getState(val0help+".Script_Power").val.toString())
+                 let anzahlStellen=3;
+                 let anzahlStellen2=3;
+             if((getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".todaykWh").val).toFixed(3)=="0.000") anzeigeNuller=0; 
+             if ((getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".MonBeforekWh").val).toFixed(3)=="0.000") anzahlStellen=0;
+             if ((getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".monkWh").val).toFixed(3)=="0.000")  anzahlStellen2=0;    
+         //    if (!anzeigeNuller){
+            val6=(getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".todaykWh").val).toFixed(anzeigeNuller)+" kWh"
+            if (!mitMonatBeforeAnzeige) {val7=(getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".monkWh").val).toFixed(anzahlStellen2)+" kWh"} 
+            else{val7=(getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".monkWh").val).toFixed(anzahlStellen2)+" ("+(getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".MonBeforekWh").val).toFixed(anzahlStellen)+") kWh"}
+            val8=(Math.round((getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".todaykWh").val)*kwhPreis*100)/100).toString()+" €"
+             if (!mitMonatBeforeAnzeige) {val9=(Math.round((getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".monkWh").val)*kwhPreis*100)/100).toString()+" €"} 
+             else{val9=(Math.round((getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".monkWh").val)*kwhPreis*100)/100).toString()+" ("+(Math.round((getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".MonBeforekWh").val)*kwhPreis*100)/100).toString()+") €"}
+if ( braucheMaterialDesignWidgetTable || braucheMaterialDesignWidget ) {  
+if (val1) {valStatus=symbolOK } else {valStatus=symbolKO};
+let val2help=" - "; let val22;
+if (val2.indexOf("mA")>-1) { val22=parseFloat(val2.replace(" mA",""))/1000;     val2help=val22.toString();} else if (val2.indexOf("A")>-1) {val22=parseFloat(val2.replace(" A","")); val2help=val22.toString();}
+let val411=val4.replace(" W","");
+let val311=val3.replace(" V",""); 
+let valkNow=val6.replace(" kWh","");
+let valkM=val7.replace(" kWh","");
+let valEuNow=val8.replace(" €","");
+let valEuM=val9.replace(" €","");
+let valMBefore=" - ";
+let valKostenBefore=" - ";
+if(mitMonatBeforeAnzeige){
+  valMBefore=getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".MonBeforekWh").val
+  valKostenBefore=(Math.round((getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".MonBeforekWh").val)*kwhPreis*100)/100).toString()
+  valkM=valkM.replace(/\(.+\)/,"");
+  valEuM=valEuM.replace(/\(.+\)/,"");
+  } 
+ 
+makeJsonWidget(val0,valStatus,val2help,val311,val411,val5,valkNow,valkM,valEuNow,valEuM,valMarkeDevice,"",valMBefore,valKostenBefore)}}
+//}
+ 
+ function zeigeVal1(){
+                if (!val1) {
+              val1=symbolKO;
+              val4=(" <font color=\""+farbeFehlenderGeräte+"\"> ")+" --- </font>";
+              val2=(" <font color=\""+farbeFehlenderGeräte+"\"> ")+" --- </font>";
+              val3=(" <font color=\""+farbeFehlenderGeräte+"\"> ")+" --- </font>";
+              val5=(" <font color=\""+farbeFehlenderGeräte+"\"> ")+" --- </font>";
+              val6=("<i><font color=\""+farbeFehlenderGeräte+"\"> ")+val6+"</font></i>";
+              val7=("<i><font color=\""+farbeFehlenderGeräte+"\"> ")+val7+"</font></i>";
+              val0=("<i> <font color=\""+farbeFehlenderGeräte+"\"> ")+val0 +"</font></i>";
+              val8=("<i><font color=\""+farbeFehlenderGeräte+"\"> ")+val8+"</font></i>";
+              val9=("<i><font color=\""+farbeFehlenderGeräte+"\"> ")+val9+"</font></i>";}
+          else{
+             // log("true")
+              val1=symbolOK;
+ 
+             }
+ }
+ 
+    function berechneGesamt() {
+      if (!filterArrAusnahme.includes(val0)) {
+         // log(val0)
+        if (gesamt) {          
+                     gesamtNow=gesamtNow+parseFloat(getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".todaykWh").val);
+                     gesamtMonth=gesamtMonth+parseFloat(getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".monkWh").val);
+                     gesamtMoneyTod=gesamtMoneyTod+(Math.round((getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".todaykWh").val)*kwhPreis*100)/100);
+                     gesamtMoneyMon=gesamtMoneyMon+(Math.round((getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".monkWh").val)*kwhPreis*100)/100);
+                     gesamtMonthBefore=gesamtMonthBefore+parseFloat(getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".MonBeforekWh").val);
+                     gesamtMonthMoneyBefore=gesamtMonthMoneyBefore+(Math.round((getState(dpPrefix+"Tabelle_EnergieRechnung."+val0+".MonBeforekWh").val)*kwhPreis*100)/100);
+          }} else {}
+             }
+ 
+//MaterialDesign
+ 
+ function makeJsonWidget(vax1,vax2,vax3,vax4,vax5,vax6,vax7,vax8,vax9,vax10,vaxMarke,vaxBckGround,vaxMBefore,vaxKostenBefore) {
+   /* vax6=vax6.replace(/((ON|OFF))/g,"$1 "); log("---"+vax6) vax6=vax6.replace(/(OFF|ON).+? ((ON|OFF))/,"$3"); log("2222"+vax6)*/
+     vaxMarke=pfadBilderMaterialWidget+vaxMarke+".png"
+      let mycolor;
+       
+      if (vax1.indexOf("Gesamt")>-1) vax1="<font color=\'"+farbeMDAlleVirtPow+"\'>"+" GESAMT VirtualPower"+"</font>";
+      if (vax1.indexOf("alle Geräte")>-1) vax1="<font color=\'"+farbeMDGesamtG+"\'>"+" GESAMT"+"</font>";
+    // log(vax1+ " und "+ vax2 +" und "+vax3 )
+ 
+   if ( braucheMaterialDesignWidgetTable) {
+         
+if (filterArrAusnahme.includes(val0)) {
+  
+    vax1="<font color=\'"+farbeMDEinspeisung+"\'>"+vax1+"</font>";
+    vaxMarke=pfadBilderMaterialWidget+"inputk"+".png"
+    mycolor=farbeMDEinspeisung;
+}
+ 
+   myJsonWidget.push({
+       Device : vax1,
+       marke :vaxMarke,
+       status: vax2,
+       Strom : vax3,
+       Spannung : vax4,
+       Power : vax5,
+       Schalter : vax6,
+       kWhNow : vax7,
+       kWhMonat  : vax8,
+       MonatZuvor : vaxMBefore,
+       PreisNow : vax9,
+       PreisMonat : vax10,
+       KostenMonatZuvor: vaxKostenBefore,
+         }
+ 
+   );}
+ 
+//	log(myJsonWidget)
+if (braucheMaterialDesignWidget) {
+ 
+vaxBckGround=""
+ 
+let mysubText;
+ 
+if (!filterArrAusnahme.includes(val0)) {
+                          
+                         
+ mysubText =     `<div>Strom: ${vax3} A</div> 
+                   <div>Spannung: ${vax4} V</div> 
+                   <div>Leistung: ${vax5} W</div>
+                   <div>&ensp; </div>
+                   <div>Heute: ${vax7} kWh</div> 
+                   <div>Monat: ${vax8} kWh</div>
+                   <div>Vormonat: ${vaxMBefore} kWh</div>
+                   <div>&ensp; </div>
+                   <div>Heute: ${vax9} €</div> 
+                   <div>Monat: ${vax10} €</div>
+                   <div>Vormonat: ${vaxKostenBefore} €</div>
+                   <div style="display: flex; flex: 1; text-align: left; align-items: center; position: relative;">
+                   ${vax6}</font></div>`;
+} else {
+ 
+mysubText =     `     <div style="color: ${farbeMDEinspeisung};  ">EINSPEISUNG Leistung: ${vax5} W</div>
+                     <div>&ensp; </div>  
+                     <div>Heute: ${vax7} kWh</div> 
+                     <div>Monat: ${vax8} kWh</div>
+                     <div>Vormonat: ${vaxMBefore} kWh</div>
+                     <div>&ensp; </div>
+                     <div>Heute: ${vax9} €</div> 
+                     <div>Monat: ${vax10} €</div>
+                     <div>Vormonat: ${vaxKostenBefore} €</div>
+                     <div>Schalter: ${vax6}</font></div>`;
+                     vaxBckGround="#8A4B08";
+//  // <div>Strom:${vax3}A Spannung: ${vax4}V Leistung: ${vax5}W</div>    //font-size: 80% ;
+}
+ 
+if (vax1.indexOf("GESAMT VirtualPower")>-1) {
+ mysubText =     ` <div>&ensp; </div>
+                   <div>&ensp; </div>
+                   <div>&ensp; </div>
+                   <div>&ensp; </div>
+                   <div>Heute: ${vax7} kWh</div>
+                   <div>Monat: ${vax8} kWh</div>
+                   <div>Vormonat: ${vaxMBefore} kWh</div>
+                   <div>&ensp; </div>
+                   <div>Heute: ${vax9} € </div>
+                   <div>Monat: ${vax10} €</div>
+                   <div>Vormonat: ${vaxKostenBefore} €</div>
+                   <div>&ensp; </div>`;
+ 
+}
+if (vax1.indexOf("GESAMT")>-1) {
+ mysubText =     ` <div>&ensp; </div>
+                   <div>&ensp; </div>
+                   <div>&ensp; </div>
+                   <div>&ensp; </div>
+                   <div>Heute: ${vax7} kWh</div>
+                   <div>Monat: ${vax8} kWh</div>
+                   <div>Vormonat: ${vaxMBefore} kWh</div>
+                   <div>&ensp; </div>
+                   <div>Heute: ${vax9} € </div>
+                   <div>Monat: ${vax10} €</div>
+                   <div>Vormonat: ${vaxKostenBefore} €</div>
+                   <div>&ensp; </div>`; 
+}
+                          
+  
+  if (!filterArrAusnahme.includes(val0)) { if (vax2==symbolOK) {mycolor="green" } else {mycolor="red"};}
+ //  if (vax1.indexOf("GESAMT")>-1) {vaxMarke="infok";mycolor=farbeMDGesamtG;}
+  if (vax1.indexOf("GESAMT VirtualPower")>-1) {mycolor=farbeMDAlleVirtPow;vaxBckGround="#4682B4"}
+  if (vax1.indexOf("GESAMT</font>")>-1) {vaxMarke=pfadBilderMaterialWidget+"infok"+".png"; mycolor=farbeMDGesamtG;vaxBckGround="#4682B4"}
+  
+ 
+     myJsonWidget2.push({
+               background : vaxBckGround,
+               text: vax1,
+               subText: mysubText,
+               statusBarColor: mycolor,
+               image: vaxMarke,
+               imageColor: "",
+               listType: "text",
+               showValueLabel: false,
+               Device : vax1,
+               Status : vax2,
+               Strom : vax3,
+               Spannung : vax4,
+               Power : vax5,
+               Schalter : vax6,
+               kWhNow : vax7,
+               kWhMonat  : vax8,
+               MonatZuvor : vaxMBefore,
+               PreisNow : vax9,
+               PreisMonat : vax10,
+               KostenMonatZuvor: vaxKostenBefore,
+               marke : vaxMarke
+                 
+           });
+}
+ }
+ 
+ 
+ 
